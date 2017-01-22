@@ -1,18 +1,12 @@
 import Promise from 'bluebird';
-const MongoClient = require('mongodb').MongoClient;
-require('./config.js');
-import { sequelize, User } from './models';
+import { User } from './models';
 
-MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(err, oldDB) {
-	console.log('Connected to old Mongo server');
-
+export default function(oldDB) {
 	const emailsUsed = new Set();
 	let rejectCount = 0;
 
-	sequelize.sync({ force: true })
-	.then(function() {
-		console.log('Connected to new Postgres server');
-		return oldDB.collection('users').find({});
+	return new Promise(function(resolve, reject) {
+		resolve(oldDB.collection('users').find({}))
 	})
 	.then(function(users) {
 		return users.toArray();
@@ -53,14 +47,13 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 				salt: user.salt,
 			};
 		});
-		console.log(rejectCount);
+		console.log('User accounts rejected: ', rejectCount);
 		return User.bulkCreate(createUsers);
 	})
 	.then(function() {
-		oldDB.close();
-		process.exit(0)
+		console.log('Finished migrating Users');
 	})
 	.catch(function(err) {
-		console.log('Error ', err.message, err.errors);
-	})
-});
+		console.log('Error migrating Users', err.message, err.errors);
+	});
+}
