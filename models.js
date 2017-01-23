@@ -555,11 +555,20 @@ const PubReaction = sequelize.define('PubReaction', {
 	// replyRootPubId
 	// reactionId
 }, {
+	indexes: [
+		{
+			name: 'PubReactions_pkey',
+			method: 'BTREE',
+			fields: ['userId', 'pubId', 'reactionId'],
+			unique: true,
+		}
+	],
 	hooks: {
 		afterCreate: function(updatedItem, options) { updatePubCache(updatedItem.replyRootPubId); },
 		afterDestroy: function(updatedItem, options) { updatePubCache(updatedItem.replyRootPubId); },
 	}
 });
+PubReaction.removeAttribute('id'); // This feels a bit stranger, but sequelize is overwriting our index defined above unless we add this.
 
 // Used to connect specific label to specific pub
 const PubLabel = sequelize.define('PubLabel', {

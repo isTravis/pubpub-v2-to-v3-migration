@@ -11,6 +11,7 @@ import migratePubs from './migratePubs';
 import migratePubContributors from './migratePubContributors';
 import migratePubContributorRoles from './migratePubContributorRoles';
 import migratePubLabels from './migratePubLabels';
+import migratePubReactions from './migratePubReactions';
 import migratePubSubmitsAndFeatures from './migratePubSubmitsAndFeatures';
 import migrateFollows from './migrateFollows';
 
@@ -49,6 +50,9 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	})
 	.then(function() {
 		return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
+	})
+	.then(function() {
+		return migratePubReactions(oldDb, userMongoToId, pubMongoToId);
 	})
 	.then(function() {
 		return migratePubLabels(oldDb, pubMongoToId, journalMongoToId, labelMongoToId);

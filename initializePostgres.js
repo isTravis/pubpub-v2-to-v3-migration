@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import { Role, License } from './models';
+import { Role, License, Reaction } from './models';
 
 export default function(rolesTitleToId) {
 
@@ -21,7 +21,12 @@ export default function(rolesTitleToId) {
 	];
 
 	const licenses = [
-		{ title: 'CCBY' }
+		{ title: 'CCBY' },
+	];
+
+	const reactions = [
+		{ title: 'yay' },
+		{ title: 'nay' },
 	];
 
 	Role.bulkCreate(roles, { returning: true })
@@ -33,6 +38,9 @@ export default function(rolesTitleToId) {
 	})
 	.then(function() {
 		return License.bulkCreate(licenses, { returning: true });
+	}) 
+	.then(function() {
+		return Reaction.bulkCreate(reactions, { returning: true });
 	}) 
 	.then(function() {
 		console.log('Finished initializing postgres');

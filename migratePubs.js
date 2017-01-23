@@ -66,6 +66,14 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 	.then(function(atomsArray) {
 		const createPubs = atomsArray.filter((atom, index)=> {
 			// slugToMongoId[atom.slug] = atom._id;
+			const replyRootPubId = replyRoot[atom._id] ? pubMongoToId[replyRoot[atom._id]] : null;
+			const replyParentPubId = replyParent[atom._id] ? pubMongoToId[replyParent[atom._id]] : null;
+			if (!isPub[atom._id] && (!replyRootPubId || !replyParentPubId)) {
+				// These seem to be mostly discussions that were linked to spam pubs.
+				rejectCount += 1;
+				return false;
+			}
+
 			pubMongoToId[atom._id] = index + 1;
 			return true;
 		}).map((atom)=> {
