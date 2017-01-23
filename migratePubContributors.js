@@ -2,27 +2,6 @@ import Promise from 'bluebird';
 import { Pub, Contributor } from './models';
 import { generateHash } from './generateHash';
 
-
-// Create Journals
-// Create JournalAdmins (query for links with type === 'admin')
-// Create JournalFollows (diff file)
-
-// Create journal labels (collections - query 'tags')
-
-// Migrate Pubs (top level)
-// Migrate versions (upload files, create files)
-
-// Migrate discussions
-
-// Migrate contributors
-
-// Create journalSubmits and journalFeatures (Diff file, needs pubs first)
-
-// Create FollowsPubs
-// Create FollowsJournals
-// Create FollowsUsers
-// 
-
 export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId) {
 	const userIdPubIdToMongoId = {};
 	let rejectCount = 0;
@@ -64,9 +43,6 @@ export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId
 			userIdPubIdToMongoId[`u${userId}p${pubId}`] = link._id;
 			return true;
 		}).map((link)=> {
-			// types.add(link.type);
-			// if (link.metadata && link.metadata.roles && link.metadata.roles.length) {metadata.push(link.metadata.roles)}
-			// return link;
 			return { 
 				canEdit: link.type === 'editor' || link.type === 'author',
 				canRead: link.type === 'reader',
@@ -76,23 +52,6 @@ export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId
 				pubId: pubMongoToId[link.destination],
 			};
 		});
-
-		// const createContributorRoles = linksArray.filter((link)=> {
-		// 	return true;
-		// }).map((link)=> {
-		// 	const userId = userMongoToId[link.source];
-		// 	const pubId = pubMongoToId[link.destination];
-		// 	const roles = link.metadata && link.metadata.roles || [];
-		// 	return roles.map((role)=> {
-
-		// 		return {
-		// 			createdAt: link.createDate,
-		// 			contributorId: 
-		// 			roleId: 
-		// 			pubId: pubId,
-		// 		};
-		// 	});
-		// })
 		
 		console.log('Contributors rejected: ', rejectCount);
 		console.log('Contributors creating: ', createContributors.length);
