@@ -13,6 +13,7 @@ import migratePubContributorRoles from './migratePubContributorRoles';
 import migratePubLabels from './migratePubLabels';
 import migratePubReactions from './migratePubReactions';
 import migratePubSubmitsAndFeatures from './migratePubSubmitsAndFeatures';
+import migratePubVersions from './migratePubVersions';
 import migrateFollows from './migrateFollows';
 
 const rolesTitleToId = {} // Defined by initializePostgres
@@ -44,6 +45,9 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	})
 	.then(function() {
 		return migratePubs(oldDb, userMongoToId, pubMongoToId);
+	})
+	.then(function() {
+		return migratePubVersions(oldDb, userMongoToId, pubMongoToId);
 	})
 	.then(function() {
 		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId);

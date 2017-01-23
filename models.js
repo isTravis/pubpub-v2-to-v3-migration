@@ -153,17 +153,15 @@ const File = sequelize.define('File', {
 // How do versions know their history?
 // Do we need to encode parentVersion and rootVersion to track histories?
 const Version = sequelize.define('Version', {
-	versionMessage: { type: Sequelize.TEXT },
+	message: { type: Sequelize.TEXT },
 	isPublished: { type: Sequelize.BOOLEAN },
 	isRestricted: { type: Sequelize.BOOLEAN }, // TODO: is this the right name for this mode? Should they all be one 'accessType' value?
 	hash: { type: Sequelize.TEXT },
-	// datePublished: { type: Sequelize.DATE }, // Don't need this, as the updated date has to be the publish date
+	publishedAt: { type: Sequelize.DATE }, 
 	doi: { type: Sequelize.TEXT },
 	defaultFile: Sequelize.TEXT,
-	// exportPDF: { type: Sequelize.TEXT }, // TODO: Perhaps this is an external service for all of the exports. Maintains it's own cache, can iterate on its own. No dependency in the versions for old export styles
-	// exportMarkdown: { type: Sequelize.TEXT },
-	// exportXML: { type: Sequelize.TEXT },
-	// exportHTML: { type: Sequelize.TEXT },
+	// pubId
+	// publishedBy
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { updatePubCache(updatedItem.pubId); },
@@ -633,6 +631,7 @@ FileAttribution.belongsTo(Pub, { onDelete: 'CASCADE', as: 'pub', foreignKey: 'pu
 
 // A version belongs to a single pub, but a pub can have many versions
 Pub.hasMany(Version, { onDelete: 'CASCADE', as: 'versions', foreignKey: 'pubId' });
+Version.belongsTo(User, { onDelete: 'CASCADE', as: 'user', foreignKey: 'publishedBy' });
 
 // A user can be an admin on many journals, and a journal can have many admins
 User.belongsToMany(Journal, { onDelete: 'CASCADE', as: 'journals', through: 'JournalAdmin', foreignKey: 'userId' });
