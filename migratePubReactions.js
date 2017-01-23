@@ -16,7 +16,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 			if (!link.metadata || !link.metadata.yays || !link.metadata.nays || !link.metadata.rootReply) {
 				return false;
 			}
-			if (!pubMongoToId[link.source]) {
+			if (!pubMongoToId[link.source] || !pubMongoToId[link.metadata.rootReply]) {
 				rejectCount += 1;
 				return false;
 			}

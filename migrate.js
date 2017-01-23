@@ -34,15 +34,6 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 		return migrateUsers(oldDb, userMongoToId);
 	})
 	.then(function() {
-		return migratePubs(oldDb, userMongoToId, pubMongoToId);
-	})
-	.then(function() {
-		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId);
-	})
-	.then(function() {
-		return migratePubContributorRoles(oldDb, rolesTitleToId, userMongoToId, pubMongoToId, contributorMongoToId);
-	})
-	.then(function() {
 		return migrateJournals(oldDb, userMongoToId, journalMongoToId);
 	})
 	.then(function() {
@@ -50,6 +41,15 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	})
 	.then(function() {
 		return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
+	})
+	.then(function() {
+		return migratePubs(oldDb, userMongoToId, pubMongoToId);
+	})
+	.then(function() {
+		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId);
+	})
+	.then(function() {
+		return migratePubContributorRoles(oldDb, rolesTitleToId, userMongoToId, pubMongoToId, contributorMongoToId);
 	})
 	.then(function() {
 		return migratePubReactions(oldDb, userMongoToId, pubMongoToId);
@@ -64,7 +64,6 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 		return migrateFollows(oldDb, userMongoToId, pubMongoToId, journalMongoToId);
 	})
 	.then(function() {
-		// console.log(userMongoToId);
 		oldDb.close();
 		process.exit(0)
 	})
