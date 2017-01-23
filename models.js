@@ -22,6 +22,7 @@ const updateLabelCache = function(labelId) {
 
 // TODO: Set stricter validators on fields. They're really helpful.
 // Make sure to copy over changes made here back to v2 api model.js
+// TODO: Label names must contain atleast a letter or number. validate for that.
 
 const sequelize = new Sequelize(process.env.POSTGRES_URL, { logging: false, dialectOptions: { ssl: false } });
 

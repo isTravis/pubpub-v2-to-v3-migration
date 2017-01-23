@@ -99,7 +99,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, journalMongoToId) {
 		});
 
 		console.log('Pub Featured rejected: ', rejectFeatureCount);
-		console.log('Pub Features creating: ', createdFeatures.length);
+		console.log('Pub Featured creating: ', createdFeatures.length);
 		console.log('Pub Submits rejected: ', rejectSubmitCount);
 		console.log('Pub Submits creating: ', createdSubmits.length);
 		return Promise.all([

@@ -6,9 +6,11 @@ import initializePostgres from './initializePostgres';
 import migrateUsers from './migrateUsers';
 import migrateJournals from './migrateJournals';
 import migrateJournalAdmins from './migrateJournalAdmins';
+import migrateLabels from './migrateLabels';
 import migratePubs from './migratePubs';
 import migratePubContributors from './migratePubContributors';
 import migratePubContributorRoles from './migratePubContributorRoles';
+import migratePubLabels from './migratePubLabels';
 import migratePubSubmitsAndFeatures from './migratePubSubmitsAndFeatures';
 import migrateFollows from './migrateFollows';
 
@@ -17,6 +19,7 @@ const userMongoToId = {}; // Defined by migrateUsers and sent into functions to 
 const journalMongoToId = {}; // Defined by migrateJournals and sent into functions to aid in migration.
 const pubMongoToId = {}; // Defined by migratePubs and sent into functions to aid in migration.
 const contributorMongoToId = {}; // Defined by migratePubContributors
+const labelMongoToId = {}; // Defined by migrateLabels
 
 MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(err, oldDb) {
 	console.log('Connected to old Mongo server');
@@ -43,6 +46,12 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	})
 	.then(function() {
 		return migrateJournalAdmins(oldDb, userMongoToId, journalMongoToId);
+	})
+	.then(function() {
+		return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
+	})
+	.then(function() {
+		return migratePubLabels(oldDb, pubMongoToId, journalMongoToId, labelMongoToId);
 	})
 	.then(function() {
 		return migratePubSubmitsAndFeatures(oldDb, userMongoToId, pubMongoToId, journalMongoToId);
