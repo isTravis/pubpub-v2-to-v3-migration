@@ -1,23 +1,27 @@
 import Promise from 'bluebird';
-import { Role } from './models';
+import { Role, License } from './models';
 
 export default function(rolesTitleToId) {
 
 	const roles = [
-		{title: 'Conceptualization'},
-		{title: 'Methodology'},
-		{title: 'Software'},
-		{title: 'Validation'},
-		{title: 'Formal Analysis'},
-		{title: 'Investigation'},
-		{title: 'Resources'},
-		{title: 'Data Curation'},
-		{title: 'Writing – Original Draft Preparation'},
-		{title: 'Writing – Review & Editing'},
-		{title: 'Visualization'},
-		{title: 'Supervision'},
-		{title: 'Project Administration'},
-		{title: 'Funding Acquisition'},
+		{ title: 'Conceptualization' },
+		{ title: 'Methodology' },
+		{ title: 'Software' },
+		{ title: 'Validation' },
+		{ title: 'Formal Analysis' },
+		{ title: 'Investigation' },
+		{ title: 'Resources' },
+		{ title: 'Data Curation' },
+		{ title: 'Writing – Original Draft Preparation' },
+		{ title: 'Writing – Review & Editing' },
+		{ title: 'Visualization' },
+		{ title: 'Supervision' },
+		{ title: 'Project Administration' },
+		{ title: 'Funding Acquisition' },
+	];
+
+	const licenses = [
+		{ title: 'CCBY' }
 	];
 
 	Role.bulkCreate(roles, { returning: true })
@@ -27,6 +31,9 @@ export default function(rolesTitleToId) {
 		});
 		return undefined;
 	})
+	.then(function() {
+		return License.bulkCreate(licenses, { returning: true });
+	}) 
 	.then(function() {
 		console.log('Finished initializing postgres');
 		console.log('----------');

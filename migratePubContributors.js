@@ -23,7 +23,7 @@ import { generateHash } from './generateHash';
 // Create FollowsUsers
 // 
 
-export default function(oldDb, userMongoToId, journalMongoToId, pubMongoToId, contributorMongoToId) {
+export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId) {
 	const userIdPubIdToMongoId = {};
 	let rejectCount = 0;
 	

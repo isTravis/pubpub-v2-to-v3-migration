@@ -688,6 +688,7 @@ Journal.belongsToMany(Pub, { onDelete: 'CASCADE', as: 'pubsFeatured', through: '
 PubFeature.belongsTo(Journal, { onDelete: 'CASCADE', as: 'journal', foreignKey: 'journalId' });
 PubFeature.belongsTo(Pub, { onDelete: 'CASCADE', as: 'pub', foreignKey: 'pubId' });
 PubFeature.belongsTo(Version, { onDelete: 'CASCADE', as: 'version', foreignKey: 'versionId' });
+PubFeature.belongsTo(User, { onDelete: 'CASCADE', as: 'user', foreignKey: 'createdBy' });
 Pub.hasMany(PubFeature, { onDelete: 'CASCADE', as: 'pubFeatures', foreignKey: 'pubId' });
 Journal.hasMany(PubFeature, { onDelete: 'CASCADE', as: 'pubFeatures', foreignKey: 'journalId' });
 
@@ -696,6 +697,7 @@ Pub.belongsToMany(Journal, { onDelete: 'CASCADE', as: 'journalsSubmitted', throu
 Journal.belongsToMany(Pub, { onDelete: 'CASCADE', as: 'pubsSubmitted', through: 'PubSubmit', foreignKey: 'journalId' });
 PubSubmit.belongsTo(Journal, { onDelete: 'CASCADE', as: 'journal', foreignKey: 'journalId' });
 PubSubmit.belongsTo(Pub, { onDelete: 'CASCADE', as: 'pub', foreignKey: 'pubId' });
+PubSubmit.belongsTo(User, { onDelete: 'CASCADE', as: 'user', foreignKey: 'createdBy' });
 Pub.hasMany(PubSubmit, { onDelete: 'CASCADE', as: 'pubSubmits', foreignKey: 'pubId' });
 Journal.hasMany(PubSubmit, { onDelete: 'CASCADE', as: 'pubSubmits', foreignKey: 'journalId' });
 

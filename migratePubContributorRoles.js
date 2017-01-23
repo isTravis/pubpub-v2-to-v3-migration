@@ -1,7 +1,7 @@
 import Promise from 'bluebird';
 import { ContributorRole } from './models';
 
-export default function(oldDb, rolesTitleToId, userMongoToId, journalMongoToId, pubMongoToId, contributorMongoToId) {
+export default function(oldDb, rolesTitleToId, userMongoToId, pubMongoToId, contributorMongoToId) {
 	const userIdPubIdToMongoId = {};
 	let rejectCount = 0;
 
