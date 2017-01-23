@@ -20,6 +20,9 @@ const updateLabelCache = function(labelId) {
 	return null;
 };
 
+// TODO: Set stricter validators on fields. They're really helpful.
+// Make sure to copy over changes made here back to v2 api model.js
+
 const sequelize = new Sequelize(process.env.POSTGRES_URL, { logging: false, dialectOptions: { ssl: false } });
 
 // Change to true to update the model in the database.
@@ -111,7 +114,7 @@ const Pub = sequelize.define('Pub', {
 	// isReply: { type: Sequelize.BOOLEAN }, // May not be necessary. Presence of rootReplyPubId dictates isReply
 	isClosed: { type: Sequelize.BOOLEAN }, // Used for replies.
 	hideAuthorsList: { type: Sequelize.BOOLEAN },
-	customAuthorList: { type: Sequelize.TEXT },
+	// customAuthorList: { type: Sequelize.TEXT }, I don't think we need this... We can store custom names in the contributor
 	distinguishedClone: { type: Sequelize.BOOLEAN }, // ??TODO: Decide: Used to make a clone a 'distinguished branch'. Maybe this should be done with labels instead? If labels, then we have some weird permissioning conflicts between pub owners
 	inactive: Sequelize.BOOLEAN,
 	isPublished: Sequelize.BOOLEAN,
@@ -281,6 +284,7 @@ const Contributor = sequelize.define('Contributor', {
 	},
 	canEdit: Sequelize.BOOLEAN,
 	canRead: Sequelize.BOOLEAN,
+	customName: Sequelize.TEXT,
 	isAuthor: Sequelize.BOOLEAN,
 	isHidden: Sequelize.BOOLEAN, // Whether the contributor shows up on the 'Contributors' list. isAuthor=true forces isHidden false (or isHidden is ignored at least)
 	inactive: Sequelize.BOOLEAN, // Used when a contributor is removed so we have a history of contributors and how they were applied/removed
