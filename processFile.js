@@ -54,26 +54,34 @@ const getContent = function(pathname, fileType) {
 };
 
 
-export function processFile(file) {
+export function processFile(file, statusObject) {
+	statusObject[file.id] = file;
 	let fileUrl = file.url;
 	const fileType = file.type;
 	const fileContent = file.content; // If file.content is a ppub json and file.url is /temp.ppub, then we stringify and upload.
 	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
 	
-
+	// console.log('Processing file ', file.id);
 	// Grab the file. 
 	// If the URL is not a pubpub url, then upload it to pubpub and grab new url
 	// Generate the hash
 	// If the file is of certain types, pre-generate the content (e.g. grab the markdown)
 	return new Promise(function(resolve, reject) {
-		if (fileType === 'ppub' && fileUrl === '/temp.ppub' && fileContent) {
-			resolve(tmp.file({ postfix: '.' + extension }));
-		}
-		resolve(null);
-		// Create a file from file.docJSON, 
-		// Upload it, 
-		// Change fileUrl (make it a let);
-		// then proceed as normal
+		setTimeout(function() {
+			resolve();
+		}, Math.random() * 60 * 1000);
+	})
+	.then(function() {
+		return new Promise(function(resolve, reject) {
+			if (fileType === 'ppub' && fileUrl === '/temp.ppub' && fileContent) {
+				resolve(tmp.file({ postfix: '.' + extension }));
+			}
+			resolve(null);
+			// Create a file from file.docJSON, 
+			// Upload it, 
+			// Change fileUrl (make it a let);
+			// then proceed as normal
+		});
 	})
 	.then(function(object) {
 		if (object) {
@@ -83,6 +91,9 @@ export function processFile(file) {
 			})
 			.then(function(newFileURL) {
 				fileUrl = newFileURL;
+			})
+			.catch(function(err) {
+				console.log('Error uploading docJSON', file, err);
 			});
 		}
 		return null
@@ -111,6 +122,10 @@ export function processFile(file) {
 						
 					});
 
+				})
+				.on('error', function(err) {
+					reject(err);
+
 				});
 			}).on('error', (e) => {
 			  reject(e)
@@ -118,8 +133,11 @@ export function processFile(file) {
 		});
 	})
 	.then(function(data) {
-		if (data[0]) {
-			console.log('Uploaded ', data[0])	
+		delete statusObject[file.id];
+		if (Object.keys(statusObject).length < 25) {
+			console.log(Object.keys(statusObject).map((key)=> {
+				return statusObject[key].oldUrl;
+			}));	
 		}
 		
 		return {
@@ -129,6 +147,12 @@ export function processFile(file) {
 		};	
 	})
 	.catch(function(err) {
-		console.log('Eror in process file', err);
+		delete statusObject[file.id];
+		if (Object.keys(statusObject).length < 25) {
+			console.log(Object.keys(statusObject).map((key)=> {
+				return statusObject[key].oldUrl;
+			}));	
+		}
+		console.log('Eror in process file', file,  err);
 	});
 }

@@ -121,13 +121,16 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				...file,
 				id: index + 1,
 			}
-		}).slice(0, 50);
+		// }).slice(0, 500);
+		});
 		console.log('merged file count ', mergedFiles.length);
 		console.log('deduped file count ', dedupedFiles.length);
 
 		// Process files to upload content to PubPub when needed, generate hashes, etc
+		const statusObject = {};
+		const readFileObject = {};
 		const processFilePromises = dedupedFiles.map((file)=> {
-			return processFile(file);
+			return processFile(file, statusObject, readFileObject);
 		});
 
 		return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);

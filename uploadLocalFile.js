@@ -27,6 +27,6 @@ export function uploadLocalFile(filePath) {
 		return 'https://assets.pubpub.org/' + filename;
 	})
 	.catch(function(error) {
-		console.log('Error uploading data: ', error);
+		console.log('Error uploading data. filePath:', filePath, error);
 	});
 }
