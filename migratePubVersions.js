@@ -1,4 +1,6 @@
 import Promise from 'bluebird';
+import SHA1 from 'crypto-js/sha1';
+import encHex from 'crypto-js/enc-hex';
 import { Version, File, VersionFile } from './models';
 import { generateHash } from './generateHash';
 import { processFile } from './processFile';
@@ -52,6 +54,11 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				return false;
 			}
 			return true;
+		}).sort((foo, bar)=> {
+			// Sort so earliest link is first
+			if (foo.createDate > bar.createDate) { return 1; }
+			if (foo.createDate < bar.createDate) { return -1; }
+			return 0;
 		});
 		const createFiles = filteredVersions.map((version, index)=> {
 			// Create all the file objects
@@ -73,7 +80,8 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				if (embed.content.url.indexOf('1470350820769_sw4') > -1) { return false; }
 				return (embed.type === 'image' || embed.type === 'video' || embed.type === 'jupyter' || embed.type === 'pdf');
 			}).map((embed)=> {
-				oldURLVersions[embed.content.url] = oldURLVersions[embed.content.url] ? oldURLVersions[embed.content.url].concat([index]) : [index];
+				// For a given oldURL, grab all of the versions it was a part of, so we can later create VersionFile entries
+				oldURLVersions[embed.content.url] = oldURLVersions[embed.content.url] ? oldURLVersions[embed.content.url].concat([index + 1]) : [index + 1];
 				return {
 					type: mimeTypes[embed.content.url.split('.').pop().toLowerCase()] || 'image/jpeg',
 					name: embed.parent.title,
@@ -83,34 +91,41 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 					oldUrl: embed.content.url,
 				};
 			});
-			oldURLVersions[`version${version._id}`] = index;
+			oldURLVersions[`version${version._id}`] = [index + 1];
 			return [...embedFiles, {
 				type: 'ppub',
 				name: 'main.ppub',
-				url: null,
+				url: '/temp.ppub',
 				createdAt: version.createDate,
 				pubId: pubMongoToId[version.parent],
 				oldUrl: `version${version._id}`,
-				docJSON: version.content.docJSON,
+				content: version.content.docJSON,
 			}];
 		});
 
+		// createFiles is an array of arrays. Each inner array represents the files associated with a single version.
+		// Merge these arrays so we can do a single bulk create
 		const mergedFiles = [].concat.apply([], createFiles);
 
+		// Many files are reused across versions,
+		// We don't want to upload identical files, so dedupe based on url.
 		const fileURLs = {};
 		const dedupedFiles = mergedFiles.filter((file)=> {
 			if (fileURLs[file.url]) { return false; }
 			fileURLs[file.url] = true;
 			return true;
 		}).map((file, index)=> {
+			// We know the file creation increments the id - but do that explicitly here,
+			// so we can generate the fileId necessary for VersionFile creations.
 			return {
 				...file,
 				id: index + 1,
 			}
-		}).slice(0, 25);
+		}).slice(0, 50);
 		console.log('merged file count ', mergedFiles.length);
 		console.log('deduped file count ', dedupedFiles.length);
 
+		// Process files to upload content to PubPub when needed, generate hashes, etc
 		const processFilePromises = dedupedFiles.map((file)=> {
 			return processFile(file);
 		});
@@ -118,7 +133,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);
 	})
 	.spread(function(dedupedFiles, filteredVersions, processedFileResults) {
-
+		// Merge assembles file objects with processed file objects to get real content, urls, and hashes
 		const processedFiles = dedupedFiles.map((file, index)=> {
 			return {
 				...file,
@@ -127,29 +142,34 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		});
 
 
+		const versionHashes = {};
 		const newVersionFileEntries = processedFiles.map((file)=> {
 			return [...new Set(oldURLVersions[file.oldUrl])].map((versionId)=> {
+				versionHashes[versionId] = versionHashes[versionId] ? versionHashes[versionId].concat([file.hash]) : [file.hash];
 				return { versionId: versionId, fileId: file.id, createdAt: file.createdAt };	
 			})
 		});
 
 		const mergedVersionFiles = [].concat.apply([], newVersionFileEntries);
+		const createVersions = filteredVersions.map((version, index)=> {
+			// To generate the version hash, take the hash of all the files, sort them alphabetically, concatenate them, and then hash that string.
+			const versionFileHashes = versionHashes[index + 1] || [];
+			const fileHashString = versionFileHashes.sort((foo, bar)=> {
+				if (foo > bar) { return 1; }
+				if (foo < bar) { return -1; }
+				return 0;
+			})
+			.reduce((previous, current)=> {
+				return previous + current;
+			}, '');
 
-		// console.log(mergedFiles);
-		const createVersions = filteredVersions.filter((version)=> {
-			if (!pubMongoToId[version.parent]) {
-				rejectCount += 1; // Likely versions associated with deleted/inactive pubs. 
-				return false;
-			}
-			return true;
-		}).map((version, index)=> {
 			return { 
 				id: index + 1,
 				message: version.message,
 				isPublished: version.isPublished,
-				hash: null, // Need to generate hash. Which means we first need to get all of the files uploaded and ready.
+				hash: SHA1(fileHashString).toString(encHex), // Need to generate hash. Which means we first need to get all of the files uploaded and ready.
 				publishedAt: version.isPublished ? version.publishedDate : null,
-				publishedBy: userMongoToId[version.publishedBy],
+				publishedBy: version.isPublished ? userMongoToId[version.publishedBy] : null,
 				defaultFile: 'main.ppub',
 				pubId: pubMongoToId[version.parent],
 				createdAt: version.createDate,

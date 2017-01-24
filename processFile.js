@@ -4,12 +4,13 @@
 // a simple messaging task queue has to be setup.
 
 import https from 'https';
+import Promise from 'bluebird';
 import fs from 'fs';
 import hashFiles from 'hash-files';
-import Promise from 'bluebird';
 import tmp from 'tmp-promise';
 import { uploadLocalFile } from './uploadLocalFile';
 
+const fsWriteFile = Promise.promisify(fs.writeFile);
 tmp.setGracefulCleanup();
 
 
@@ -41,6 +42,11 @@ const getContent = function(pathname, fileType) {
 				if (err) { reject(err); }
 				resolve(data);
 			});
+		} else if (fileType === 'ppub') {
+			fs.readFile(pathname, 'utf8', function (err, data) {
+				if (err) { reject(err); }
+				resolve(data);
+			});
 		} else {
 			resolve(null);
 		}
@@ -49,25 +55,39 @@ const getContent = function(pathname, fileType) {
 
 
 export function processFile(file) {
-	const fileUrl = file.url;
+	let fileUrl = file.url;
 	const fileType = file.type;
-	const extension = fileUrl !== undefined ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
+	const fileContent = file.content; // If file.content is a ppub json and file.url is /temp.ppub, then we stringify and upload.
+	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
+	
+
 	// Grab the file. 
 	// If the URL is not a pubpub url, then upload it to pubpub and grab new url
 	// Generate the hash
 	// If the file is of certain types, pre-generate the content (e.g. grab the markdown)
-	
 	return new Promise(function(resolve, reject) {
-		if (fileType !== 'ppub') {
-			resolve(null);
+		if (fileType === 'ppub' && fileUrl === '/temp.ppub' && fileContent) {
+			resolve(tmp.file({ postfix: '.' + extension }));
 		}
-
+		resolve(null);
 		// Create a file from file.docJSON, 
 		// Upload it, 
-		// Change fileURL (make it a let);
+		// Change fileUrl (make it a let);
 		// then proceed as normal
 	})
-	.then(function(thing) {
+	.then(function(object) {
+		if (object) {
+			return fsWriteFile(object.path, JSON.stringify(fileContent, null, 2), 'utf-8')
+			.then(function() {
+				return uploadLocalFile(object.path)
+			})
+			.then(function(newFileURL) {
+				fileUrl = newFileURL;
+			});
+		}
+		return null
+	})
+	.then(function() {
 		return tmp.file({ postfix: '.' + extension })
 	})
 	.then(function(object) {
