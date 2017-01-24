@@ -69,7 +69,7 @@ export function processFile(file, statusObject) {
 	return new Promise(function(resolve, reject) {
 		setTimeout(function() {
 			resolve();
-		}, Math.random() * 60 * 1000);
+		}, Math.random() * 240 * 1000);
 	})
 	.then(function() {
 		return new Promise(function(resolve, reject) {

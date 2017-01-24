@@ -111,7 +111,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		// We don't want to upload identical files, so dedupe based on url.
 		const fileURLs = {};
 		const dedupedFiles = mergedFiles.filter((file)=> {
-			if (fileURLs[file.url]) { return false; }
+			if (file.url !== '/temp.ppub' && fileURLs[file.url]) { return false; }
 			fileURLs[file.url] = true;
 			return true;
 		}).map((file, index)=> {

@@ -8,3 +8,8 @@ mongod
 cd ~migration
 npm start
 ```
+
+You will likely have to increase the number of files Node is allowed to have open to facilitate the docJSON file writes:
+```
+sudo launchctl limit maxfiles 524288 524288 && ulimit -n 524288
+```
