@@ -1,11 +1,13 @@
 import Promise from 'bluebird';
-import { Version, File } from './models';
+import { Version, File, VersionFile } from './models';
 import { generateHash } from './generateHash';
+import { processFile } from './processFile';
 
 export default function(oldDb, userMongoToId, pubMongoToId) {
 	let rejectCount = 0;
 
 	const embedTypes = new Set();
+	const oldURLVersions = {};
 
 	return new Promise(function(resolve, reject) {
 		resolve(oldDb.collection('versions').find({ type: 'document' }))
@@ -64,24 +66,33 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 			// Create processed file objects
 			// Create Versions
 
-			// .then, create VersionFiles using fileParentVersions
 
 			const embedObjects = iterateObject(version.content.docJSON);
-			return embedObjects.filter((embed)=> {
+			const embedFiles = embedObjects.filter((embed)=> {
 				if (!embed.content || !embed.content.url) { return false; }
+				if (embed.content.url.indexOf('1470350820769_sw4') > -1) { return false; }
 				return (embed.type === 'image' || embed.type === 'video' || embed.type === 'jupyter' || embed.type === 'pdf');
 			}).map((embed)=> {
-				if (!mimeTypes[embed.content.url.split('.').pop().toLowerCase()]) {
-					console.log(embed.content.url);
-				}
+				oldURLVersions[embed.content.url] = oldURLVersions[embed.content.url] ? oldURLVersions[embed.content.url].concat([index]) : [index];
 				return {
 					type: mimeTypes[embed.content.url.split('.').pop().toLowerCase()] || 'image/jpeg',
 					name: embed.parent.title,
 					url: embed.content.url,
 					createdAt: embed.parent.createDate,
 					pubId: pubMongoToId[version.parent],
+					oldUrl: embed.content.url,
 				};
 			});
+			oldURLVersions[`version${version._id}`] = index;
+			return [...embedFiles, {
+				type: 'ppub',
+				name: 'main.ppub',
+				url: null,
+				createdAt: version.createDate,
+				pubId: pubMongoToId[version.parent],
+				oldUrl: `version${version._id}`,
+				docJSON: version.content.docJSON,
+			}];
 		});
 
 		const mergedFiles = [].concat.apply([], createFiles);
@@ -91,10 +102,38 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 			if (fileURLs[file.url]) { return false; }
 			fileURLs[file.url] = true;
 			return true;
-		});
+		}).map((file, index)=> {
+			return {
+				...file,
+				id: index + 1,
+			}
+		}).slice(0, 25);
 		console.log('merged file count ', mergedFiles.length);
 		console.log('deduped file count ', dedupedFiles.length);
 
+		const processFilePromises = dedupedFiles.map((file)=> {
+			return processFile(file);
+		});
+
+		return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);
+	})
+	.spread(function(dedupedFiles, filteredVersions, processedFileResults) {
+
+		const processedFiles = dedupedFiles.map((file, index)=> {
+			return {
+				...file,
+				...processedFileResults[index],
+			};
+		});
+
+
+		const newVersionFileEntries = processedFiles.map((file)=> {
+			return [...new Set(oldURLVersions[file.oldUrl])].map((versionId)=> {
+				return { versionId: versionId, fileId: file.id, createdAt: file.createdAt };	
+			})
+		});
+
+		const mergedVersionFiles = [].concat.apply([], newVersionFileEntries);
 
 		// console.log(mergedFiles);
 		const createVersions = filteredVersions.filter((version)=> {
@@ -105,12 +144,13 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 			return true;
 		}).map((version, index)=> {
 			return { 
+				id: index + 1,
 				message: version.message,
 				isPublished: version.isPublished,
 				hash: null, // Need to generate hash. Which means we first need to get all of the files uploaded and ready.
 				publishedAt: version.isPublished ? version.publishedDate : null,
 				publishedBy: userMongoToId[version.publishedBy],
-				defaultFile: 'main.pub',
+				defaultFile: 'main.ppub',
 				pubId: pubMongoToId[version.parent],
 				createdAt: version.createDate,
 			};
@@ -119,8 +159,12 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		console.log('Versions creating: ', createVersions.length);
 		return Promise.all([
 			Version.bulkCreate(createVersions, { returning: true }),
-			File.bulkCreate(dedupedFiles, { returning: true })
+			File.bulkCreate(processedFiles, { returning: true }),
+			mergedVersionFiles,
 		]);
+	})
+	.spread(function(newVersions, newFiles, mergedVersionFiles) {
+		return VersionFile.bulkCreate(mergedVersionFiles);
 	})
 	.then(function(newVersions) {
 		// newJournals.map((newJournal)=> {
