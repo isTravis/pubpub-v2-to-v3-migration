@@ -1,13 +1,16 @@
 import Promise from 'bluebird';
 import SHA1 from 'crypto-js/sha1';
 import encHex from 'crypto-js/enc-hex';
-import { Version, File, VersionFile } from './models';
+import { Version, File, VersionFile, Highlight } from './models';
 import { generateHash } from './generateHash';
 import { processFile } from './processFile';
 
-export default function(oldDb, userMongoToId, pubMongoToId) {
+export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAuthorId) {
 	let rejectCount = 0;
 
+	const versionIdToPubFileId = {};
+	const versionIdToPubFileHash = {};
+	const versionIdToPubFileName = {};
 	const embedTypes = new Set();
 	const oldURLVersions = {};
 
@@ -74,6 +77,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 			// Create Versions
 
 
+			// Convert to new type of docJSON
 			const embedObjects = iterateObject(version.content.docJSON);
 			const embedFiles = embedObjects.filter((embed)=> {
 				if (!embed.content || !embed.content.url) { return false; }
@@ -107,6 +111,13 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		// Merge these arrays so we can do a single bulk create
 		const mergedFiles = [].concat.apply([], createFiles);
 
+
+
+
+
+
+
+
 		// Many files are reused across versions,
 		// We don't want to upload identical files, so dedupe based on url.
 		const fileURLs = {};
@@ -121,7 +132,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				...file,
 				id: index + 1,
 			}
-		// }).slice(0, 500);
+		// }).slice(0, 10);
 		});
 		console.log('merged file count ', mergedFiles.length);
 		console.log('deduped file count ', dedupedFiles.length);
@@ -148,6 +159,9 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		const versionHashes = {};
 		const newVersionFileEntries = processedFiles.map((file)=> {
 			return [...new Set(oldURLVersions[file.oldUrl])].map((versionId)=> {
+				if (file.type === 'ppub') { versionIdToPubFileId[versionId] = file.id; }
+				if (file.type === 'ppub') { versionIdToPubFileHash[versionId] = file.hash; }
+				if (file.type === 'ppub') { versionIdToPubFileName[versionId] = file.name; }
 				versionHashes[versionId] = versionHashes[versionId] ? versionHashes[versionId].concat([file.hash]) : [file.hash];
 				return { versionId: versionId, fileId: file.id, createdAt: file.createdAt };	
 			})
@@ -178,16 +192,78 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				createdAt: version.createDate,
 			};
 		});
+
+
+
+
+
+
+		const createHighlights = filteredVersions.map((version, index)=> {
+			// To generate the version hash, take the hash of all the files, sort them alphabetically, concatenate them, and then hash that string.
+			const versionFileHashes = versionHashes[index + 1] || [];
+			const fileHashString = versionFileHashes.sort((foo, bar)=> {
+				if (foo > bar) { return 1; }
+				if (foo < bar) { return -1; }
+				return 0;
+			})
+			.reduce((previous, current)=> {
+				return previous + current;
+			}, '');
+
+
+			const embedObjects = iterateObject(version.content.docJSON);
+			return embedObjects.filter((embed)=> {
+				if (embed.type !== 'highlight') { return false; }
+				if (!embed.content || !embed.content.text || !embed.content.context) { return false; }
+				return true;
+			}).map((embed)=> {
+				const context = embed.content.context;
+				const text = embed.content.text;
+				const textStart = context.indexOf(text);
+				const textEnd = textStart + text.length;
+				const prefixStart = Math.max(textStart - 10, 0);
+				const suffixEnd = Math.min(textEnd + 10, context.length);
+				const thing = {
+					userId: pubMongoToFirstAuthorId[version.parent],
+					pubId: pubMongoToId[version.parent],
+					versionId: index + 1,
+					versionHash: SHA1(fileHashString).toString(encHex),
+					
+					fileId: versionIdToPubFileId[index + 1],
+					fileHash: versionIdToPubFileHash[index + 1],
+					fileName: versionIdToPubFileName[index + 1],
+					
+					prefix: context.substring(prefixStart, textStart),
+					exact: embed.content.text,
+					suffix: context.substring(textEnd, suffixEnd),
+					context: embed.content.context,
+				};
+				return thing;
+			});
+		});
+
+
+		const mergedHighlights = [].concat.apply([], createHighlights);
+
+
+
+
+
+
 		console.log('Versions rejected: ', rejectCount);
 		console.log('Versions creating: ', createVersions.length);
 		return Promise.all([
 			Version.bulkCreate(createVersions, { returning: true }),
 			File.bulkCreate(processedFiles, { returning: true }),
+			mergedHighlights,
 			mergedVersionFiles,
 		]);
 	})
-	.spread(function(newVersions, newFiles, mergedVersionFiles) {
-		return VersionFile.bulkCreate(mergedVersionFiles);
+	.spread(function(newVersions, newFiles, mergedHighlights, mergedVersionFiles) {
+		return Promise.all([
+			VersionFile.bulkCreate(mergedVersionFiles),
+			Highlight.bulkCreate(mergedHighlights)
+		]);
 	})
 	.then(function(newVersions) {
 		// newJournals.map((newJournal)=> {

@@ -2,7 +2,7 @@ import Promise from 'bluebird';
 import { Pub, Contributor } from './models';
 import { generateHash } from './generateHash';
 
-export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId) {
+export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId, pubMongoToFirstAuthorId) {
 	const userIdPubIdToMongoId = {};
 	let rejectCount = 0;
 	
@@ -41,6 +41,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, contributorMongoToId
 				return false
 			}
 			userIdPubIdToMongoId[`u${userId}p${pubId}`] = link._id;
+			pubMongoToFirstAuthorId[link.destination] = userId;
 			return true;
 		}).map((link)=> {
 			return { 

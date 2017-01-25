@@ -227,14 +227,17 @@ const Role = sequelize.define('Role', {
 });
 
 const Highlight = sequelize.define('Highlight', {
-	text: { type: Sequelize.TEXT },
-	// userId: userId is used to mark who created the highlight
-	// pubId: pubId is used to mark which pub the highlight is from
-	// versionId: versionId is used to mark which version the highlight is from
-	// versionHash: hash of the version the highlight is from
-	// fileId
-	// fileHash
-	// fileName
+	// userId: { type: Sequelize.INTEGER },
+	// pubId: { type: Sequelize.INTEGER },
+	// versionId: { type: Sequelize.INTEGER },
+	versionHash: { type: Sequelize.TEXT },
+	// fileId: { type: Sequelize.INTEGER },
+	fileHash: { type: Sequelize.TEXT },
+	fileName: { type: Sequelize.TEXT },
+	prefix: { type: Sequelize.TEXT },
+	exact: { type: Sequelize.TEXT },
+	suffix: { type: Sequelize.TEXT },
+	context: { type: Sequelize.TEXT },
 });
 
 
@@ -736,6 +739,7 @@ Pub.hasMany(Highlight, { onDelete: 'CASCADE', as: 'highlights', foreignKey: 'pub
 Version.hasMany(Highlight, { onDelete: 'CASCADE', as: 'highlights', foreignKey: 'versionId' });
 // A user can have many highlights, but a highlight belongs to only a single user
 User.hasMany(Highlight, { onDelete: 'CASCADE', as: 'highlights', foreignKey: 'userId' });
+File.hasMany(Highlight, { onDelete: 'CASCADE', as: 'highlights', foreignKey: 'fileId' });
 
 // A license can be used on many pubs, but a pub belongs to only a single license
 License.hasMany(Pub, { onDelete: 'CASCADE', as: 'pubs', foreignKey: 'licenseId' });

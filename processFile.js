@@ -70,6 +70,7 @@ export function processFile(file, statusObject) {
 		setTimeout(function() {
 			resolve();
 		}, Math.random() * 240 * 1000);
+		// }, Math.random() * 0 * 1000);
 	})
 	.then(function() {
 		return new Promise(function(resolve, reject) {
@@ -134,12 +135,12 @@ export function processFile(file, statusObject) {
 	})
 	.then(function(data) {
 		delete statusObject[file.id];
-		if (Object.keys(statusObject).length < 25) {
-			console.log(Object.keys(statusObject).map((key)=> {
-				return statusObject[key].oldUrl;
-			}));	
+		if (Object.keys(statusObject).length % 100 === 0 || Object.keys(statusObject).length < 10) {
+			console.log(Object.keys(statusObject).length)
+			// map((key)=> {
+			// 	return statusObject[key].oldUrl;
+			// }));	
 		}
-		
 		return {
 			url: data[0] || fileUrl,
 			hash: data[1] || null,

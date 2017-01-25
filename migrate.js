@@ -21,6 +21,7 @@ const userMongoToId = {}; // Defined by migrateUsers and sent into functions to 
 const journalMongoToId = {}; // Defined by migrateJournals and sent into functions to aid in migration.
 const pubMongoToId = {}; // Defined by migratePubs and sent into functions to aid in migration.
 const contributorMongoToId = {}; // Defined by migratePubContributors
+const pubMongoToFirstAuthorId = {};
 const labelMongoToId = {}; // Defined by migrateLabels
 
 MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(err, oldDb) {
@@ -47,10 +48,10 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 		return migratePubs(oldDb, userMongoToId, pubMongoToId);
 	})
 	.then(function() {
-		return migratePubVersions(oldDb, userMongoToId, pubMongoToId);
+		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId, pubMongoToFirstAuthorId);
 	})
 	.then(function() {
-		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId);
+		return migratePubVersions(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAuthorId);
 	})
 	.then(function() {
 		return migratePubContributorRoles(oldDb, rolesTitleToId, userMongoToId, pubMongoToId, contributorMongoToId);
