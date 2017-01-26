@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import { Pub, Version, File } from './models';
+import { Pub, Version, File, Label } from './models';
 import { generateHash } from './generateHash';
 import dateFormat from 'dateformat';
 
@@ -11,7 +11,7 @@ import dateFormat from 'dateformat';
 
 // Migrate contributors
 
-export default function(oldDb, userMongoToId, pubMongoToId) {
+export default function(oldDb, userMongoToId, pubMongoToId, labelMongoToId) {
 	let rejectCount = 0;
 
 	const isPub = {};
@@ -64,7 +64,7 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 		return atoms.toArray();
 	})
 	.then(function(atomsArray) {
-		const createPubs = atomsArray.filter((atom, index)=> {
+		const filteredAtoms = atomsArray.filter((atom, index)=> {
 			// const replyRootPubId = replyRoot[atom._id] ? pubMongoToId[replyRoot[atom._id]] : null;
 			// const replyParentPubId = replyParent[atom._id] ? pubMongoToId[replyParent[atom._id]] : null;
 			// if (!isPub[atom._id] && (!replyRootPubId || !replyParentPubId)) {
@@ -76,7 +76,9 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 
 			pubMongoToId[atom._id] = index + 1;
 			return true;
-		}).map((atom)=> {
+		});
+
+		const createPubs = filteredAtoms.map((atom)=> {
 			return { 
 				id: pubMongoToId[atom._id],
 				slug: atom.slug,
@@ -91,13 +93,35 @@ export default function(oldDb, userMongoToId, pubMongoToId) {
 				licenseId: 1,
 
 			};
-			// TODO: Migrate authors, discussions, versions
 		});
+
+
 		console.log('Pubs rejected: ', rejectCount);
 		console.log('Pubs creating: ', createPubs.length);
-		return Pub.bulkCreate(createPubs, { returning: true });
+		return Promise.all([
+			Pub.bulkCreate(createPubs, { returning: true }),
+			filteredAtoms,
+		]);
 	})
-	.then(function(newPubs) {
+	.spread(function(newPubs, filteredAtoms) {
+		const createPubLabels = filteredAtoms.map((atom)=> {
+			return [
+				{ pubId: pubMongoToId[atom._id], title: 'Question', color: '#f39c12' },
+				{ pubId: pubMongoToId[atom._id], title: 'Review', color: '#3498db' },
+				{ pubId: pubMongoToId[atom._id], title: 'Copy editing', color: '#c0392b' },
+			];
+		});
+
+		const existingLabelCount = Object.keys(labelMongoToId).length;
+		const mergedLabels = [].concat.apply([], createPubLabels).map((item, index)=> {
+			return {
+				...item,
+				id: existingLabelCount + index + 1,
+			};
+		});
+		return Label.bulkCreate(mergedLabels);
+	})
+	.then(function(newLabels) {
 		// newPubs.map((newPub)=> {
 		// 	const mongoId = slugToMongoId[newPub.slug];
 		// 	pubMongoToId[mongoId] = newPub.id;

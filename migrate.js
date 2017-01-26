@@ -46,7 +46,7 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 		return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
 	})
 	.then(function() {
-		return migratePubs(oldDb, userMongoToId, pubMongoToId);
+		return migratePubs(oldDb, userMongoToId, pubMongoToId, labelMongoToId);
 	})
 	.then(function() {
 		return migratePubContributors(oldDb, userMongoToId, pubMongoToId, contributorMongoToId, pubMongoToFirstAuthorId);
