@@ -15,6 +15,7 @@ import migratePubReactions from './migratePubReactions';
 import migratePubSubmitsAndFeatures from './migratePubSubmitsAndFeatures';
 import migratePubVersions from './migratePubVersions';
 import migrateFollows from './migrateFollows';
+import syncTableIndexes from './syncTableIndexes';
 
 const rolesTitleToId = {} // Defined by initializePostgres
 const userMongoToId = {}; // Defined by migrateUsers and sent into functions to aid in migration.
@@ -67,6 +68,9 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	})
 	.then(function() {
 		return migrateFollows(oldDb, userMongoToId, pubMongoToId, journalMongoToId);
+	})
+	.then(function() {
+		return syncTableIndexes();
 	})
 	.then(function() {
 		oldDb.close();

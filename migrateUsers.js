@@ -34,7 +34,7 @@ export default function(oldDb, userMongoToId) {
 				username: user.username,
 				firstName: user.firstName || 'undefined', // Note, this decision will leave some people's names with 'Undefined Johnson'
 				lastName: user.lastName || 'undefined', // Note, this decision will leave some people's names with 'Mary Undefined'
-				avatar: user.image,
+				avatar: user.image || 'https://assets.pubpub.org/_site/happyPub.png',
 				email: user.email.trim(),
 				bio: user.bio,
 				publicEmail: user.publicEmail,
