@@ -13,6 +13,48 @@ import { uploadLocalFile } from './uploadLocalFile';
 const fsWriteFile = Promise.promisify(fs.writeFile);
 tmp.setGracefulCleanup();
 
+const setDelay = function() {
+	return new Promise(function(resolve, reject) {
+		setTimeout(function() {
+			resolve();
+		}, Math.random() * 240 * 1000);
+		// }, Math.random() * 0 * 1000);
+	});
+};
+
+const generateAndSaveFile = function(file) {
+	// Create a file from file.docJSON, 
+	// Upload it, 
+	// Change fileUrl (make it a let);
+	// then proceed as normal
+	const fileUrl = file.url;
+	const fileType = file.type;
+	const fileContent = file.content;
+	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
+
+	return new Promise(function(resolve, reject) {
+		if (fileType === 'ppub' && fileUrl === '/temp.ppub' && fileContent) {
+			resolve(tmp.file({ postfix: '.' + extension }));
+		}
+		if (fileType === 'text/markdown' && fileUrl === '/temp.md' && fileContent) {
+			resolve(tmp.file({ postfix: '.' + extension }));
+		}
+		resolve(null);
+	})
+	.then(function(object) {
+		const storedContent = fileType === 'ppub' ? JSON.stringify(fileContent, null, 2) : fileContent;
+		if (object) {
+			return fsWriteFile(object.path, storedContent, 'utf-8')
+			.then(function() {
+				return uploadLocalFile(object.path);
+			})
+			.catch(function(err) {
+				console.log('Error generating and saving file', file, err);
+			});
+		}
+		return null;
+	});
+};
 
 const uploadToPubPub = function(pathname, fileUrl) {
 	return new Promise(function(resolve, reject) {
@@ -55,52 +97,25 @@ const getContent = function(pathname, fileType) {
 
 
 export function processFile(file, statusObject) {
-	statusObject[file.id] = file;
 	let fileUrl = file.url;
 	const fileType = file.type;
-	const fileContent = file.content; // If file.content is a ppub json and file.url is /temp.ppub, then we stringify and upload.
 	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
 	
-	// console.log('Processing file ', file.id);
 	// Grab the file. 
 	// If the URL is not a pubpub url, then upload it to pubpub and grab new url
 	// Generate the hash
 	// If the file is of certain types, pre-generate the content (e.g. grab the markdown)
-	return new Promise(function(resolve, reject) {
-		setTimeout(function() {
-			resolve();
-		}, Math.random() * 240 * 1000);
-		// }, Math.random() * 0 * 1000);
+
+	return setDelay()
+	.then(function() {
+		return generateAndSaveFile(file);
+	})
+	.then(function(newFileUrl) {
+		if (newFileUrl) { fileUrl = newFileUrl; }
+		return null;
 	})
 	.then(function() {
-		return new Promise(function(resolve, reject) {
-			if (fileType === 'ppub' && fileUrl === '/temp.ppub' && fileContent) {
-				resolve(tmp.file({ postfix: '.' + extension }));
-			}
-			resolve(null);
-			// Create a file from file.docJSON, 
-			// Upload it, 
-			// Change fileUrl (make it a let);
-			// then proceed as normal
-		});
-	})
-	.then(function(object) {
-		if (object) {
-			return fsWriteFile(object.path, JSON.stringify(fileContent, null, 2), 'utf-8')
-			.then(function() {
-				return uploadLocalFile(object.path)
-			})
-			.then(function(newFileURL) {
-				fileUrl = newFileURL;
-			})
-			.catch(function(err) {
-				console.log('Error uploading docJSON', file, err);
-			});
-		}
-		return null
-	})
-	.then(function() {
-		return tmp.file({ postfix: '.' + extension })
+		return tmp.file({ postfix: '.' + extension });
 	})
 	.then(function(object) {
 		const pathname = object.path;
@@ -128,8 +143,8 @@ export function processFile(file, statusObject) {
 					reject(err);
 
 				});
-			}).on('error', (e) => {
-			  reject(e)
+			}).on('error', (err) => {
+				reject(err);
 			});
 		});
 	})
@@ -154,6 +169,6 @@ export function processFile(file, statusObject) {
 				return statusObject[key].oldUrl;
 			}));	
 		}
-		console.log('Eror in process file', file,  err);
+		console.log('Error in process file', file, err);
 	});
 }
