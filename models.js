@@ -24,7 +24,8 @@ const updateLabelCache = function(labelId) {
 // Make sure to copy over changes made here back to v2 api model.js
 // TODO: Label names must contain atleast a letter or number. validate for that.
 
-const sequelize = new Sequelize(process.env.POSTGRES_URL, { logging: false, dialectOptions: { ssl: false } });
+const useSSL = process.env.POSTGRES_URL.indexOf('localhost:') === -1;
+const sequelize = new Sequelize(process.env.POSTGRES_URL, { logging: false, dialectOptions: { ssl: useSSL } });
 
 // Change to true to update the model in the database.
 // NOTE: This being set to true will erase your data.

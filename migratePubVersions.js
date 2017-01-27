@@ -1,9 +1,11 @@
 import Promise from 'bluebird';
 import SHA1 from 'crypto-js/sha1';
 import encHex from 'crypto-js/enc-hex';
+import { migrateJSON } from 'pubpub-prose/migrate';
 import { Version, File, VersionFile, Highlight } from './models';
 import { generateHash } from './generateHash';
 import { processFile } from './processFile';
+
 
 export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAuthorId) {
 	let rejectCount = 0;
@@ -63,6 +65,8 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			if (foo.createDate < bar.createDate) { return -1; }
 			return 0;
 		});
+		// }).slice(0, 100);
+
 		const createFiles = filteredVersions.map((version, index)=> {
 			// Create all the file objects
 			// restructure docJSON to have relative paths to filenames of objects from previous step
@@ -79,6 +83,8 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 
 			// Convert to new type of docJSON
 			const embedObjects = iterateObject(version.content.docJSON);
+
+
 			const embedFiles = embedObjects.filter((embed)=> {
 				if (!embed.content || !embed.content.url) { return false; }
 				if (embed.content.url.indexOf('1470350820769_sw4') > -1) { return false; }
@@ -99,6 +105,10 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			// if (pubMongoToId[version.parent] === 648) {
 			// 	console.log(version.content.markdown);
 			// }56da0dfc62eb513d008c8ff9
+			
+
+			const migratedJSON = migrateJSON(JSON.parse(JSON.stringify(version.content.docJSON)));
+			console.log(index);
 			return [...embedFiles, {
 				type: 'ppub',
 				name: 'main.ppub',
@@ -106,7 +116,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 				createdAt: version.createDate,
 				pubId: pubMongoToId[version.parent],
 				oldUrl: `version${version._id}`,
-				content: version.content.docJSON,
+				content: migratedJSON.docJSON,
 			}];
 		});
 

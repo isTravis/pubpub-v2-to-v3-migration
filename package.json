@@ -21,6 +21,7 @@
     "mongodb": "^2.2.21",
     "passport-local-sequelize": "^0.6.0",
     "pg": "^6.1.0",
+    "pubpub-prose": "github:pubpub/pubpub-prose",
     "sequelize": "^3.29.0",
     "tmp-promise": "^1.0.2"
   }

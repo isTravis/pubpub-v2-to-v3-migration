@@ -36,15 +36,15 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	.then(function() {
 		return migrateUsers(oldDb, userMongoToId);
 	})
-	.then(function() {
-		return migrateJournals(oldDb, userMongoToId, journalMongoToId);
-	})
-	.then(function() {
-		return migrateJournalAdmins(oldDb, userMongoToId, journalMongoToId);
-	})
-	.then(function() {
-		return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
-	})
+	// .then(function() {
+	// 	return migrateJournals(oldDb, userMongoToId, journalMongoToId);
+	// })
+	// .then(function() {
+	// 	return migrateJournalAdmins(oldDb, userMongoToId, journalMongoToId);
+	// })
+	// .then(function() {
+	// 	return migrateLabels(oldDb, journalMongoToId, labelMongoToId);
+	// })
 	.then(function() {
 		return migratePubs(oldDb, userMongoToId, pubMongoToId, labelMongoToId);
 	})
