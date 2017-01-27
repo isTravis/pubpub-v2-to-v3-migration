@@ -96,6 +96,9 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 				};
 			});
 			oldURLVersions[`version${version._id}`] = [index + 1];
+			// if (pubMongoToId[version.parent] === 648) {
+			// 	console.log(version.content.markdown);
+			// }56da0dfc62eb513d008c8ff9
 			return [...embedFiles, {
 				type: 'ppub',
 				name: 'main.ppub',
@@ -139,9 +142,8 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 
 		// Process files to upload content to PubPub when needed, generate hashes, etc
 		const statusObject = {};
-		const readFileObject = {};
 		const processFilePromises = dedupedFiles.map((file)=> {
-			return processFile(file, statusObject, readFileObject);
+			return processFile(file, statusObject);
 		});
 
 		return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);
@@ -149,19 +151,42 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 	.spread(function(dedupedFiles, filteredVersions, processedFileResults) {
 		// Merge assembles file objects with processed file objects to get real content, urls, and hashes
 		const processedFiles = dedupedFiles.map((file, index)=> {
+			if (file.pubId === 648) {
+				// console.log('section1');
+				// console.log(file);
+				// console.log(processedFileResults[index]);
+			}
 			return {
 				...file,
 				...processedFileResults[index],
 			};
 		});
 
+		// console.log(`dedupe length ${dedupedFiles.length} and processedFileLength ${processedFileResults.length}`)
+
 
 		const versionHashes = {};
 		const newVersionFileEntries = processedFiles.map((file)=> {
 			return [...new Set(oldURLVersions[file.oldUrl])].map((versionId)=> {
-				if (file.type === 'ppub') { versionIdToPubFileId[versionId] = file.id; }
-				if (file.type === 'ppub') { versionIdToPubFileHash[versionId] = file.hash; }
-				if (file.type === 'ppub') { versionIdToPubFileName[versionId] = file.name; }
+				if (file.type === 'ppub') { 
+					versionIdToPubFileId[versionId] = file.id; 
+					versionIdToPubFileHash[versionId] = file.hash;
+					versionIdToPubFileName[versionId] = file.name;
+				}
+
+				// if (file.id === 871) {
+				// 	console.log('section2');
+				// 	console.log(file);
+				// }
+
+				// if (versionId === 635) {
+				// 	console.log('section 3');
+				// 	console.log(file);
+				// }
+				// if (file.pubId === 648) {
+				// 	console.log('section 4');
+				// 	console.log(file);
+				// }
 				versionHashes[versionId] = versionHashes[versionId] ? versionHashes[versionId].concat([file.hash]) : [file.hash];
 				return { versionId: versionId, fileId: file.id, createdAt: file.createdAt };	
 			})
@@ -254,15 +279,35 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 		console.log('Versions creating: ', createVersions.length);
 		return Promise.all([
 			Version.bulkCreate(createVersions, { returning: true }),
+			processedFiles,
+			mergedHighlights,
+			mergedVersionFiles,
+		]);
+	})
+	.spread(function(newVersions, processedFiles, mergedHighlights, mergedVersionFiles) {
+		// console.log('section 33');
+		return Promise.all([
+			newVersions,
 			File.bulkCreate(processedFiles, { returning: true }),
 			mergedHighlights,
 			mergedVersionFiles,
 		]);
 	})
-	.spread(function(newVersions, newFiles, mergedHighlights, mergedVersionFiles) {
+	.spread(function(newVersions, processedFiles, mergedHighlights, mergedVersionFiles) {
+		// console.log('section 44');
 		return Promise.all([
+			newVersions,
+			processedFiles,
+			mergedHighlights,
 			VersionFile.bulkCreate(mergedVersionFiles),
+		]);
+	})
+	.spread(function(newVersions, newFiles, mergedHighlights, mergedVersionFiles) {
+		// console.log('section 55');
+		return Promise.all([
 			Highlight.bulkCreate(mergedHighlights)
+			// VersionFile.bulkCreate(mergedVersionFiles),
+			
 		]);
 	})
 	.then(function(newVersions) {
@@ -275,7 +320,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 		return undefined;
 	})
 	.catch(function(err) {
-		console.log('Error migrating Versions', err.message, err.errors);
+		console.log('Error migrating Versions', err.message, err.errors, err);
 	});
 }
 

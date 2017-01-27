@@ -97,6 +97,7 @@ const getContent = function(pathname, fileType) {
 
 
 export function processFile(file, statusObject) {
+	statusObject[file.id] = file;
 	let fileUrl = file.url;
 	const fileType = file.type;
 	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
