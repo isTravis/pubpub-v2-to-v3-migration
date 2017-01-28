@@ -65,7 +65,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			if (foo.createDate < bar.createDate) { return -1; }
 			return 0;
 		});
-		// }).slice(0, 100);
+		// }).slice(0, 200);
 
 		const createFiles = filteredVersions.map((version, index)=> {
 			// Create all the file objects

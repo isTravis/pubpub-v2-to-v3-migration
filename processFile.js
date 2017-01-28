@@ -17,8 +17,8 @@ const setDelay = function() {
 	return new Promise(function(resolve, reject) {
 		setTimeout(function() {
 			resolve();
-		// }, Math.random() * 240 * 1000);
-		}, Math.random() * 60 * 1000);
+		}, Math.random() * 360 * 1000);
+		// }, Math.random() * 60 * 1000);
 		// }, Math.random() * 0 * 1000);
 	});
 };
