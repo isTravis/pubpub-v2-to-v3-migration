@@ -6,7 +6,6 @@ import { Version, File, VersionFile, Highlight } from './models';
 import { generateHash } from './generateHash';
 import { processFile } from './processFile';
 
-
 export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAuthorId) {
 	let rejectCount = 0;
 
@@ -65,7 +64,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			if (foo.createDate < bar.createDate) { return -1; }
 			return 0;
 		});
-		// }).slice(0, 200);
+		// }).slice(0, 1000);
 
 		const createFiles = filteredVersions.map((version, index)=> {
 			// Create all the file objects
@@ -107,8 +106,9 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			// }56da0dfc62eb513d008c8ff9
 			
 
-			const migratedJSON = migrateJSON(JSON.parse(JSON.stringify(version.content.docJSON)));
-			console.log(index);
+			// const migratedJSON = migrateJSON(JSON.parse(JSON.stringify(version.content.docJSON)), false);
+			if (index % 500 === 0) { console.log(index); }
+			
 			return [...embedFiles, {
 				type: 'ppub',
 				name: 'main.ppub',
@@ -116,7 +116,8 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 				createdAt: version.createDate,
 				pubId: pubMongoToId[version.parent],
 				oldUrl: `version${version._id}`,
-				content: migratedJSON.docJSON,
+				// content: migratedJSON.docJSON,
+				content: version.content.docJSON,
 			}];
 		});
 
@@ -152,14 +153,39 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 
 		// Process files to upload content to PubPub when needed, generate hashes, etc
 		const statusObject = {};
-		const processFilePromises = dedupedFiles.map((file)=> {
-			return processFile(file, statusObject);
-		});
+		dedupedFiles.forEach((file)=> {
+			statusObject[file.id] = file;
+		})
 
-		return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);
+		const promiseMap = Promise.map(dedupedFiles, (file)=> {
+			return processFile(file, statusObject);
+		}, { concurrency: 50 });
+
+
+
+
+		// return Promise.all([dedupedFiles, filteredVersions, Promise.all(processFilePromises)]);
+		return Promise.all([dedupedFiles, filteredVersions, promiseMap]);
 	})
 	.spread(function(dedupedFiles, filteredVersions, processedFileResults) {
 		// Merge assembles file objects with processed file objects to get real content, urls, and hashes
+
+		const urlCounts = {};
+		const newUrls = processedFileResults.map((item)=> {
+			urlCounts[item.url] = urlCounts[item.url] ? urlCounts[item.url] + 1 : 1;
+			return item.url;
+		});
+
+		const doubleUrls = Object.keys(urlCounts).filter((item)=> {
+			return urlCounts[item] > 1;
+		});
+
+		console.log(doubleUrls);
+
+		const setUrls = [...new Set(newUrls)];
+
+		console.log(`Old length ${newUrls.length} - Deduped legth ${setUrls.length}`);
+
 		const processedFiles = dedupedFiles.map((file, index)=> {
 			if (file.pubId === 648) {
 				// console.log('section1');
@@ -295,7 +321,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 		]);
 	})
 	.spread(function(newVersions, processedFiles, mergedHighlights, mergedVersionFiles) {
-		// console.log('section 33');
+		console.log('section 33');
 		return Promise.all([
 			newVersions,
 			File.bulkCreate(processedFiles, { returning: true }),
@@ -304,7 +330,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 		]);
 	})
 	.spread(function(newVersions, processedFiles, mergedHighlights, mergedVersionFiles) {
-		// console.log('section 44');
+		console.log('section 44');
 		return Promise.all([
 			newVersions,
 			processedFiles,
@@ -313,7 +339,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 		]);
 	})
 	.spread(function(newVersions, newFiles, mergedHighlights, mergedVersionFiles) {
-		// console.log('section 55');
+		console.log('section 55');
 		return Promise.all([
 			Highlight.bulkCreate(mergedHighlights)
 			// VersionFile.bulkCreate(mergedVersionFiles),

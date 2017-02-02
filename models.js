@@ -20,9 +20,6 @@ const updateLabelCache = function(labelId) {
 	return null;
 };
 
-// TODO: Set stricter validators on fields. They're really helpful.
-// Make sure to copy over changes made here back to v2 api model.js
-// TODO: Label names must contain atleast a letter or number. validate for that.
 
 const useSSL = process.env.POSTGRES_URL.indexOf('localhost:') === -1;
 const sequelize = new Sequelize(process.env.POSTGRES_URL, { logging: false, dialectOptions: { ssl: useSSL } });
@@ -42,9 +39,9 @@ const SignUp = sequelize.define('SignUp', {
 			isEmail: true
 		} 
 	},
-	hash: Sequelize.TEXT,
-	count: Sequelize.INTEGER,
-	completed: Sequelize.BOOLEAN,
+	hash: { type: Sequelize.TEXT },
+	count: { type: Sequelize.INTEGER },
+	completed: { type: Sequelize.BOOLEAN },
 });
 
 const User = sequelize.define('User', {
@@ -54,14 +51,13 @@ const User = sequelize.define('User', {
 		allowNull: false,
 		validate: {
 			isLowercase: true,
-			// isAlphanumeric: true, // No special characters
-			is: /^.*[A-Za-z]+.*$/, // Must contain at least one letter
-			// Does this catch spaces? We don't want to allow spaces.
+			len: [1, 280],
+			is: /^(?=.*[a-zA-Z])[a-zA-Z0-9\-_]+$/, // Must contain at least one letter, alphanumberic and underscores and hyphens
 		},
 	},
 	firstName: { type: Sequelize.TEXT, allowNull: false },
 	lastName: { type: Sequelize.TEXT, allowNull: false },
-	avatar: { type: Sequelize.TEXT }, // !TODO: image->avatar
+	avatar: { type: Sequelize.TEXT, allowNull: false },
 	email: { 
 		type: Sequelize.TEXT, 
 		allowNull: false, 
@@ -71,21 +67,30 @@ const User = sequelize.define('User', {
 			isLowercase: true,
 		} 
 	},
-	isUnclaimed: Sequelize.BOOLEAN, // Used to add a user/author to a pub that isn't in the system. When claimed, the foreign keys are changed/merged with the real account.
-	bio: Sequelize.TEXT,
-	publicEmail: Sequelize.TEXT,
-	github: Sequelize.TEXT,
-	orcid: Sequelize.TEXT,
-	twitter: Sequelize.TEXT,
-	website: Sequelize.TEXT,
-	googleScholar: Sequelize.TEXT,
-	accessToken: Sequelize.TEXT,
+	isUnclaimed: { type: Sequelize.BOOLEAN }, // Used to add a user/author to a pub that isn't in the system. When claimed, the foreign keys are changed/merged with the real account.
+	bio: { 
+		type: Sequelize.TEXT,
+		validate: {
+			len: [0, 280],
+		},
+	},
+	publicEmail: { 
+		type: Sequelize.TEXT, 
+		validate: {
+			isEmail: true,
+		} 
+	},
+	github: { type: Sequelize.TEXT },
+	orcid: { type: Sequelize.TEXT },
+	twitter: { type: Sequelize.TEXT },
+	website: { type: Sequelize.TEXT },
+	googleScholar: { type: Sequelize.TEXT },
+	accessToken: { type: Sequelize.TEXT },
 	resetHashExpiration: Sequelize.DATE,
-	resetHash: Sequelize.TEXT,
-	inactive: Sequelize.BOOLEAN,
-
-	hash: Sequelize.TEXT,
-	salt: Sequelize.TEXT,
+	resetHash: { type: Sequelize.TEXT },
+	inactive: { type: Sequelize.BOOLEAN },
+	hash: { type: Sequelize.TEXT, allowNull: false },
+	salt: { type: Sequelize.TEXT, allowNull: false },
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { updateUserCache(updatedItem.id); },
@@ -107,25 +112,31 @@ const Pub = sequelize.define('Pub', {
 		allowNull: false,
 		validate: {
 			isLowercase: true,
+			len: [1, 280],
+			is: /^(?=.*[a-zA-Z])[a-zA-Z0-9\-_]+$/, // Must contain at least one letter, alphanumberic and underscores and hyphens
 		},
 	},
-	// publicSlug: { type: Sequelize.STRING }, // Used to share a pub without making it globally public
 	title: { type: Sequelize.TEXT, allowNull: false },
-	description: { type: Sequelize.TEXT },
-	avatar: { type: Sequelize.TEXT }, // !TODO: previewImage->avatar
+	description: { 
+		type: Sequelize.TEXT,
+		validate: {
+			len: [0, 280],
+		}, 
+	},
+	avatar: { type: Sequelize.TEXT, allowNull: false }, 
 	// isReply: { type: Sequelize.BOOLEAN }, // May not be necessary. Presence of rootReplyPubId dictates isReply
 	isClosed: { type: Sequelize.BOOLEAN }, // Used for replies.
 	hideAuthorsList: { type: Sequelize.BOOLEAN },
 	// customAuthorList: { type: Sequelize.TEXT }, I don't think we need this... We can store custom names in the contributor
-	distinguishedClone: { type: Sequelize.BOOLEAN }, // ??TODO: Decide: Used to make a clone a 'distinguished branch'. Maybe this should be done with labels instead? If labels, then we have some weird permissioning conflicts between pub owners
-	inactive: Sequelize.BOOLEAN,
-	isPublished: Sequelize.BOOLEAN,
-	isRestricted: Sequelize.BOOLEAN,
-	threadNumber: Sequelize.INTEGER, // Used for discussions, to mark top-level discussion with a unique (per-pub, per published/unpublished) number
-	headerColor: Sequelize.STRING,
-	headerImage: Sequelize.TEXT,
+	distinguishedClone: { type: Sequelize.BOOLEAN }, 
+	inactive: { type: Sequelize.BOOLEAN },
+	isPublished: { type: Sequelize.BOOLEAN },
+	isRestricted: { type: Sequelize.BOOLEAN },
+	threadNumber: { type: Sequelize.INTEGER }, // Used for discussions, to mark top-level discussion with a unique (per-pub , per published/unpublished) number
+	headerColor: { type: Sequelize.STRING },
+	headerImage: { type: Sequelize.TEXT },
 	// cloneParentPubId
-	// cloneParentVersionId // Is cloneParentPubId needed if we are tracking clones by version?
+	// cloneParentVersionId
 	// rootReplyPubId
 	// parentReplyPubId
 	// pullRequestVersionId
@@ -133,37 +144,38 @@ const Pub = sequelize.define('Pub', {
 	// defaultContext
 }, {
 	hooks: {
-		afterCreate: function(updatedItem, options) { updatePubCache(updatedItem.id); },
-		afterUpdate: function(updatedItem, options) { updatePubCache(updatedItem.id); },
-		afterDelete: function(updatedItem, options) { updatePubCache(updatedItem.id); },
-		afterCreate: function(updatedItem, options) { updatePubCache(updatedItem.replyRootPubId); },
-		afterUpdate: function(updatedItem, options) { updatePubCache(updatedItem.replyRootPubId); },
-		afterDelete: function(updatedItem, options) { updatePubCache(updatedItem.replyRootPubId); },
+		afterCreate: function(updatedItem, options) { 
+			updatePubCache(updatedItem.id); 
+			updatePubCache(updatedItem.replyRootPubId);
+		},
+		afterUpdate: function(updatedItem, options) { 
+			updatePubCache(updatedItem.id); 
+			updatePubCache(updatedItem.replyRootPubId);
+		},
+		afterDelete: function(updatedItem, options) { 
+			updatePubCache(updatedItem.id); 
+			updatePubCache(updatedItem.replyRootPubId);
+		},
 	}
 });
 
-// How do files know their history?
-// Do we need to encode parentFile and rootFile to track histories?
 const File = sequelize.define('File', {
-	type: { type: Sequelize.STRING },
-	name: { type: Sequelize.STRING },
-	// path: { type: Sequelize.STRING }, // Path is encoded in the name.
-	url: { type: Sequelize.TEXT },
+	type: { type: Sequelize.STRING, allowNull: false },
+	name: { type: Sequelize.STRING, allowNull: false },
+	url: { type: Sequelize.TEXT, allowNull: false },
 	content: { type: Sequelize.TEXT },
-	hash: { type: Sequelize.TEXT },
+	hash: { type: Sequelize.TEXT, allowNull: false },
 	originalDate: { type: Sequelize.DATE },
 });
 
-// How do versions know their history?
-// Do we need to encode parentVersion and rootVersion to track histories?
 const Version = sequelize.define('Version', {
-	message: { type: Sequelize.TEXT },
+	message: { type: Sequelize.TEXT, allowNull: false },
 	isPublished: { type: Sequelize.BOOLEAN },
-	isRestricted: { type: Sequelize.BOOLEAN }, // TODO: is this the right name for this mode? Should they all be one 'accessType' value?
-	hash: { type: Sequelize.TEXT },
+	isRestricted: { type: Sequelize.BOOLEAN },
+	hash: { type: Sequelize.TEXT, allowNull: false },
 	publishedAt: { type: Sequelize.DATE }, 
 	doi: { type: Sequelize.TEXT },
-	defaultFile: Sequelize.TEXT,
+	defaultFile: { type: Sequelize.TEXT, allowNull: false },
 	// pubId
 	// publishedBy
 }, {
@@ -173,8 +185,48 @@ const Version = sequelize.define('Version', {
 	}
 });
 
+const Journal = sequelize.define('Journal', {
+	title: {
+		type: Sequelize.TEXT,
+		allowNull: false,
+	},
+	slug: { 
+		type: Sequelize.TEXT, 
+		unique: true, 
+		allowNull: false,
+		validate: {
+			isLowercase: true,
+			len: [1, 280],
+			is: /^(?=.*[a-zA-Z])[a-zA-Z0-9\-_]+$/, // Must contain at least one letter, alphanumberic and underscores and hyphens
+		},
+	},
+	description: { 
+		type: Sequelize.TEXT,
+		validate: {
+			len: [1, 140],
+		}, 
+	},
+	about: { type: Sequelize.TEXT },
+	logo: { type: Sequelize.TEXT },
+	avatar: { type: Sequelize.TEXT, allowNull: false },
+	website: { type: Sequelize.TEXT },
+	twitter: { type: Sequelize.TEXT },
+	facebook: { type: Sequelize.TEXT },
+	headerColor: { type: Sequelize.STRING },
+	headerMode: { type: Sequelize.STRING },
+	headerAlign: { type: Sequelize.STRING },
+	headerImage: { type: Sequelize.TEXT },
+	inactive: { type: Sequelize.BOOLEAN },
+}, {
+	hooks: {
+		afterCreate: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
+		afterUpdate: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
+		afterDestroy: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
+	}
+});
+
 const Activity = sequelize.define('Activity', {
-	verb: { type: Sequelize.TEXT },
+	verb: { type: Sequelize.TEXT, allowNull: false },
 	// actorJournalId
 	// actorUserId
 	// targetPubId
@@ -191,21 +243,26 @@ const License = sequelize.define('License', {
 	title: { type: Sequelize.TEXT },
 	description: { type: Sequelize.TEXT },
 	url: { type: Sequelize.TEXT },
-	avatar: { type: Sequelize.TEXT }, //!TODO: image->avatar
+	avatar: { type: Sequelize.TEXT },
 });
 
 const Label = sequelize.define('Label', {
-	title: { type: Sequelize.TEXT },
-	slug: { type: Sequelize.TEXT }, // !TODO: add slug
+	title: { 
+		type: Sequelize.TEXT,
+		allowNull: false,
+		validate: {
+			len: [1, 140],
+		},
+	},
+	slug: { type: Sequelize.TEXT },
 	color: { type: Sequelize.STRING },
 	description: { type: Sequelize.TEXT },
 	isDisplayed: { type: Sequelize.BOOLEAN }, // Used for some labels to mark whether they are rendered in special places, e.g. in a Journal's nav as collections
 	order: { type: Sequelize.DOUBLE }, // Used for some labels to mark their order, e.g. in a Journal's nav. Doubles in the range of (0-1) exclusive.
-	// isPrivate: { type: Sequelize.BOOLEAN }, // Perhaps some labels could be private. If owned by a journal or user, they could be used to keep track of private organizations
 	// journalId: journalId is used if a label is owned by a particular journal. These labels are used for collections
 	// pubId: pubId is used to allow a pub to set it's own list of privately-editable labels for discussions.
 	// userId: userId is used and private to a user to allow them to organize pubs that they follow
-	// If there is no pubId and no journalId, it is a pubic label that can be used by anyone. These must be managed by the community.
+	// If there is no pubId and no journalId and no userId, it is a pubic label that can be used by anyone. These must be managed by the community.
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { 
@@ -234,8 +291,8 @@ const Highlight = sequelize.define('Highlight', {
 	// userId: { type: Sequelize.INTEGER },
 	// pubId: { type: Sequelize.INTEGER },
 	// versionId: { type: Sequelize.INTEGER },
-	versionHash: { type: Sequelize.TEXT },
 	// fileId: { type: Sequelize.INTEGER },
+	versionHash: { type: Sequelize.TEXT },	
 	fileHash: { type: Sequelize.TEXT },
 	fileName: { type: Sequelize.TEXT },
 	prefix: { type: Sequelize.TEXT },
@@ -244,39 +301,6 @@ const Highlight = sequelize.define('Highlight', {
 	context: { type: Sequelize.TEXT },
 });
 
-
-const Journal = sequelize.define('Journal', {
-	title: { // !TODO: name->title
-		type: Sequelize.TEXT,
-		allowNull: false,
-	},
-	slug: { 
-		type: Sequelize.TEXT, 
-		unique: true, 
-		allowNull: false,
-		validate: {
-			isLowercase: true,
-		},
-	},
-	description: { type: Sequelize.TEXT }, // !TODO: shortDescription->description
-	about: { type: Sequelize.TEXT }, // !TODO: longDescription->about
-	logo: { type: Sequelize.TEXT },
-	avatar: Sequelize.TEXT, // !TODO: icon->avatar
-	website: Sequelize.TEXT,
-	twitter: Sequelize.TEXT,
-	facebook: Sequelize.TEXT,
-	headerColor: Sequelize.STRING,
-	headerMode: Sequelize.STRING,
-	headerAlign: Sequelize.STRING,
-	headerImage: Sequelize.TEXT,
-	inactive: Sequelize.BOOLEAN,
-}, {
-	hooks: {
-		afterCreate: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
-		afterUpdate: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
-		afterDestroy: function(updatedItem, options) { updateJournalCache(updatedItem.id); },
-	}
-});
 
 const UserLastReadPub = sequelize.define('UserLastReadPub', {
 	lastRead: { type: Sequelize.DATE },
@@ -288,12 +312,12 @@ const Contributor = sequelize.define('Contributor', {
 		primaryKey: true, 
 		autoIncrement: true 
 	},
-	canEdit: Sequelize.BOOLEAN,
-	canRead: Sequelize.BOOLEAN,
-	customName: Sequelize.TEXT,
-	isAuthor: Sequelize.BOOLEAN,
-	isHidden: Sequelize.BOOLEAN, // Whether the contributor shows up on the 'Contributors' list. isAuthor=true forces isHidden false (or isHidden is ignored at least)
-	inactive: Sequelize.BOOLEAN, // Used when a contributor is removed so we have a history of contributors and how they were applied/removed
+	canEdit: { type: Sequelize.BOOLEAN },
+	canRead: { type: Sequelize.BOOLEAN },
+	customName: { type: Sequelize.TEXT },
+	isAuthor: { type: Sequelize.BOOLEAN },
+	isHidden: { type: Sequelize.BOOLEAN }, // Whether the contributor shows up on the 'Contributors' list. isAuthor=true forces isHidden false (or isHidden is ignored at least)
+	inactive: { type: Sequelize.BOOLEAN }, // Used when a contributor is removed so we have a history of contributors and how they were applied/removed
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { 
@@ -316,14 +340,13 @@ const InvitedReviewer = sequelize.define('InvitedReviewer', {
 	email: { 
 		type: Sequelize.TEXT,  
 		validate: {
-			isEmail: true
+			isEmail: true,
 		} 
 	},
-	name: Sequelize.TEXT,
-	// invitationHash: Sequelize.TEXT, // Used to create the link that an invited email user can navigate to to create an account
-	invitationAccepted: Sequelize.BOOLEAN,
-	invitationRejected: Sequelize.BOOLEAN,
-	rejectionReason: Sequelize.TEXT,
+	name: { type: Sequelize.TEXT },
+	invitationAccepted: { type: Sequelize.BOOLEAN },
+	invitationRejected: { type: Sequelize.BOOLEAN },
+	rejectionReason: { type: Sequelize.TEXT },
 	// invitedUserId: used to mark which user has been invited
 	// inviterUserId: used to mark which user created the invitiation
 	// inviterJournalId: used to mark which journal the invitation is on behalf of
@@ -352,9 +375,9 @@ const InvitedReviewer = sequelize.define('InvitedReviewer', {
 });
 
 const ApiKey = sequelize.define('ApiKey', {
-	title: Sequelize.TEXT,
-	keyId: Sequelize.TEXT,
-	keySecret: Sequelize.TEXT,
+	title: { type: Sequelize.TEXT },
+	keyId: { type: Sequelize.TEXT },
+	keySecret: { type: Sequelize.TEXT },
 	//userId: the associated user that this authenticates.
 }, {
 	hooks: {
@@ -365,9 +388,9 @@ const ApiKey = sequelize.define('ApiKey', {
 
 // Used on a Pub (typically a discussion pub)
 const Reaction = sequelize.define('Reaction', {
-	title: Sequelize.TEXT,
-	keywords: Sequelize.TEXT,
-	icon: Sequelize.TEXT, // !TODO: image->icon
+	title: { type: Sequelize.TEXT },
+	keywords: { type: Sequelize.TEXT },
+	icon: { type: Sequelize.TEXT },
 });
 
 const JournalAdmin = sequelize.define('JournalAdmin', {
@@ -513,7 +536,6 @@ const ContributorRole = sequelize.define('ContributorRole', {
 
 const PubFeature = sequelize.define('PubFeature', { // Used to connect specific journal to specific pub as featurer
 	isDisplayed: Sequelize.BOOLEAN, // Whether the feature tag is displayed on the front of the pub
-	// isContext: Sequelize.BOOLEAN, // Whether the feature is the default context
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { 
@@ -554,7 +576,7 @@ const PubSubmit = sequelize.define('PubSubmit', {
 
 // Used to connect specific reaction to specific pub (typicaly discussion pub)
 const PubReaction = sequelize.define('PubReaction', {
-	inactive: Sequelize.BOOLEAN, // Used when a reaction is removed so we have a history of reactions and how they were applied/removed
+	inactive: { type: Sequelize.BOOLEAN }, // Used when a reaction is removed so we have a history of reactions and how they were applied/removed
 	// userId
 	// pubId
 	// replyRootPubId
@@ -577,7 +599,7 @@ PubReaction.removeAttribute('id'); // This feels a bit stranger, but sequelize i
 
 // Used to connect specific label to specific pub
 const PubLabel = sequelize.define('PubLabel', {
-	inactive: Sequelize.BOOLEAN, // Used when a label is removed so we have a history of labels and how they were applied/removed
+	inactive: { type: Sequelize.BOOLEAN }, // Used when a label is removed so we have a history of labels and how they were applied/removed
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { 
@@ -600,7 +622,7 @@ const FileRelation = sequelize.define('FileRelation', {
 		primaryKey: true, 
 		autoIncrement: true 
 	},
-	type: Sequelize.TEXT, // Used to describe the relationship between to files
+	type: { type: Sequelize.TEXT }, // Used to describe the relationship between to files
 }, {
 	hooks: {
 		afterCreate: function(updatedItem, options) { updatePubCache(updatedItem.pubId); },

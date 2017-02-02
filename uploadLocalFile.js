@@ -5,13 +5,13 @@ AWS.config.region = 'us-east-1';
 AWS.config.setPromisesDependency(Promise);
 const readFile = Promise.promisify(require('fs').readFile);
 
-export function uploadLocalFile(filePath) {
+export function uploadLocalFile(filePath, fileId) {
 	const folderName = '_testing';
 	// let folderName = '';
 	// const possible = 'abcdefghijklmnopqrstuvwxyz';
 	// for (let charIndex = 0; charIndex < 8; charIndex++) { folderName += possible.charAt(Math.floor(Math.random() * possible.length)); }
 	const extension = filePath !== undefined ? filePath.substr((~-filePath.lastIndexOf('.') >>> 0) + 2) : 'jpg';
-	const filename = folderName + '/' + new Date().getTime() + '.' + extension;
+	const filename = folderName + '/' + fileId + '' + new Date().getTime() + '.' + extension;
 
 	return readFile(filePath)
 	.then(function(file) {

@@ -106,9 +106,9 @@ export default function(oldDb, userMongoToId, pubMongoToId, labelMongoToId) {
 	.spread(function(newPubs, filteredAtoms) {
 		const createPubLabels = filteredAtoms.map((atom)=> {
 			return [
-				{ pubId: pubMongoToId[atom._id], title: 'Question', color: '#f39c12' },
-				{ pubId: pubMongoToId[atom._id], title: 'Review', color: '#3498db' },
-				{ pubId: pubMongoToId[atom._id], title: 'Copy editing', color: '#c0392b' },
+				{ pubId: pubMongoToId[atom._id], title: 'Question', color: '#ED5565' },
+				{ pubId: pubMongoToId[atom._id], title: 'Review', color: '#8CC152' },
+				{ pubId: pubMongoToId[atom._id], title: 'Copy editing', color: '#AC92EC' },
 			];
 		});
 
