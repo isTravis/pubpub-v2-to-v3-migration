@@ -159,7 +159,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 
 		const promiseMap = Promise.map(dedupedFiles, (file)=> {
 			return processFile(file, statusObject);
-		}, { concurrency: 50 });
+		}, { concurrency: 25 });
 
 
 
