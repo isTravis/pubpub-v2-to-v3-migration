@@ -207,6 +207,7 @@ const Journal = sequelize.define('Journal', {
 		}, 
 	},
 	about: { type: Sequelize.TEXT },
+	customDomain: { type: Sequelize.TEXT },
 	logo: { type: Sequelize.TEXT },
 	avatar: { type: Sequelize.TEXT, allowNull: false },
 	website: { type: Sequelize.TEXT },
@@ -257,9 +258,9 @@ const Label = sequelize.define('Label', {
 	slug: { type: Sequelize.TEXT },
 	color: { type: Sequelize.STRING },
 	description: { type: Sequelize.TEXT },
-	isDisplayed: { type: Sequelize.BOOLEAN }, // Used for some labels to mark whether they are rendered in special places, e.g. in a Journal's nav as collections
+	isDisplayed: { type: Sequelize.BOOLEAN }, // Used for some labels to mark whether they are rendered in special places, e.g. in a Journal's nav as pages
 	order: { type: Sequelize.DOUBLE }, // Used for some labels to mark their order, e.g. in a Journal's nav. Doubles in the range of (0-1) exclusive.
-	// journalId: journalId is used if a label is owned by a particular journal. These labels are used for collections
+	// journalId: journalId is used if a label is owned by a particular journal. These labels are used for pages
 	// pubId: pubId is used to allow a pub to set it's own list of privately-editable labels for discussions.
 	// userId: userId is used and private to a user to allow them to organize pubs that they follow
 	// If there is no pubId and no journalId and no userId, it is a pubic label that can be used by anyone. These must be managed by the community.
@@ -702,8 +703,8 @@ Pub.belongsTo(Pub, { onDelete: 'CASCADE', as: 'replyRootPub', foreignKey: 'reply
 // A discussion can have many children, but only has a single parent
 Pub.hasMany(Pub, { onDelete: 'CASCADE', as: 'childDiscussions', foreignKey: 'replyParentPubId' });
 
-// A journal can own many labels (used to build collections), but a label can have only one Journal
-Journal.hasMany(Label, { onDelete: 'CASCADE', as: 'collections', foreignKey: 'journalId' });
+// A journal can own many labels (used to build pages), but a label can have only one Journal
+Journal.hasMany(Label, { onDelete: 'CASCADE', as: 'pages', foreignKey: 'journalId' });
 // A user can have many labels, but a label can have only one User
 User.hasMany(Label, { onDelete: 'CASCADE', as: 'userLabels', foreignKey: 'userId' });
 // A pub can own many (custom discussion) labels, but a label can have only one Pub

@@ -106,7 +106,7 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 			// }56da0dfc62eb513d008c8ff9
 			
 
-			// const migratedJSON = migrateJSON(JSON.parse(JSON.stringify(version.content.docJSON)), false);
+			const migratedJSON = migrateJSON(JSON.parse(JSON.stringify(version.content.docJSON)), false);
 			if (index % 500 === 0) { console.log(index); }
 			
 			return [...embedFiles, {
@@ -116,8 +116,8 @@ export default function(oldDb, userMongoToId, pubMongoToId, pubMongoToFirstAutho
 				createdAt: version.createDate,
 				pubId: pubMongoToId[version.parent],
 				oldUrl: `version${version._id}`,
-				// content: migratedJSON.docJSON,
-				content: version.content.docJSON,
+				content: migratedJSON.docJSON,
+				// content: version.content.docJSON,
 			}];
 		});
 

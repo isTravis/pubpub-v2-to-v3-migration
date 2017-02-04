@@ -1,4 +1,6 @@
 import Promise from 'bluebird';
+import fs from 'fs';
+const fsWriteFile = Promise.promisify(fs.writeFile);
 const MongoClient = require('mongodb').MongoClient;
 require('./config.js');
 import { sequelize, User } from './models';
@@ -69,6 +71,11 @@ MongoClient.connect(process.env.MONGO_URL, {promiseLibrary: Promise}, function(e
 	.then(function() {
 		return migrateFollows(oldDb, userMongoToId, pubMongoToId, journalMongoToId);
 	})
+
+	// .then(function() {
+	// 	return fsWriteFile('./pubMongoIdToPostgresId', JSON.stringify(pubMongoToId, null, 2), 'utf-8');
+	// })
+	
 	.then(function() {
 		return syncTableIndexes();
 	})

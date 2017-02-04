@@ -117,7 +117,7 @@ export function processFile(file, statusObject) {
 	let fileUrl = file.url;
 	const fileType = file.type;
 	const extension = fileUrl ? fileUrl.substr((~-fileUrl.lastIndexOf('.') >>> 0) + 2) : 'jpg';
-	const debug = true;
+	const debug = false;
 	// Grab the file. 
 	// If the URL is not a pubpub url, then upload it to pubpub and grab new url
 	// Generate the hash
